@@ -99,12 +99,12 @@ export class Board<T> {
         // 示例：仅检查水平方向的匹配
         for (let row = 0; row < this.height; row++) {
             for (let col = 0; col < this.width - 2; col++) {
-                if (this.grid[row][col] !== undefined &&
-                    this.grid[row][col] === this.grid[row][col + 1] &&
-                    this.grid[row][col] === this.grid[row][col + 2]) {
-                    // @ts-ignore
+                const current = this.grid[row][col];
+                if (current !== undefined &&
+                    current === this.grid[row][col + 1] &&
+                    current === this.grid[row][col + 2]) {
                     matches.push({
-                        matched: this.grid[row][col],
+                        matched: current as T, // 使用类型断言
                         positions: [{ row, col }, { row, col: col + 1 }, { row, col: col + 2 }]
                     });
                 }
@@ -112,6 +112,7 @@ export class Board<T> {
         }
         return matches;
     }
+
 
     private handleMatches(matches: Match<T>[]) {
         for (const match of matches) {
