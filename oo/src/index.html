@@ -1,9 +1,154 @@
 <html>
-<head> 
+<head>
     <title><%= htmlWebpackPlugin.options.title %></title>
 </head>
 <body>
-    <h1><%= htmlWebpackPlugin.options.title %></h1>
-    <div id='base'></div>
+<h1><%= htmlWebpackPlugin.options.title %></h1>
+<div id='base'></div>
+<div id="message"></div>
+
+<div id="registerDiv">
+    <h2>Register</h2>
+    <label for="registerUsername"></label><input type="text" id="registerUsername" placeholder="Username">
+    <label for="registerPassword"></label><input type="password" id="registerPassword" placeholder="Password">
+    <button onclick="register()">Register</button>
+</div>
+
+<div id="loginDiv">
+    <h2>Login</h2>
+    <label for="loginUsername"></label><input type="text" id="loginUsername" placeholder="Username">
+    <label for="loginPassword"></label><input type="password" id="loginPassword" placeholder="Password">
+    <button onclick="login()">Login</button>
+</div>
+
+<div id="scoreDiv" style="display:none;">
+    Score: <span id="score">0</span>
+</div>
+
+<div id="gameDiv" style="display:none;">
+    <button onclick="startGame()">Start Game</button>
+</div>
 </body>
+
+
+<script>
+    let token = null;
+
+    function showMessage(message) {
+        document.getElementById('message').innerText = message;
+    }
+
+    function toggleVisibility(showGame) {
+        document.getElementById('registerDiv').style.display = showGame ? 'none' : 'block';
+        document.getElementById('loginDiv').style.display = showGame ? 'none' : 'block';
+        document.getElementById('gameDiv').style.display = showGame ? 'block' : 'none';
+        document.getElementById('scoreDiv').style.display = showGame ? 'block' : 'none';
+    }
+
+
+    async function register() {
+        const username = document.getElementById('registerUsername').value;
+        const password = document.getElementById('registerPassword').value;
+
+        // 确保用户名和密码不为空
+        if (!username || !password) {
+            showMessage('Username and password are required');
+            return;
+        }
+
+        const response = await fetch('http://localhost:9090/users', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (response.ok) {
+            showMessage('Registration successful');
+        } else {
+            showMessage('Registration failed');
+        }
+    }
+
+
+    async function login() {
+        const username = document.getElementById('loginUsername').value;
+        const password = document.getElementById('loginPassword').value;
+
+        const response = await fetch('http://localhost:9090/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            token = data.token;
+            showMessage('Login successful');
+            toggleVisibility(true);
+        } else {
+            showMessage('Login failed');
+        }
+    }
+
+    function createLetterGenerator() {
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        return {
+            next: function() {
+                const randomIndex = Math.floor(Math.random() * letters.length);
+                return letters[randomIndex];
+            }
+        };
+    }
+
+
+    async function startGame() {
+        if (!token) {
+            showMessage('Please login first');
+            return;
+        }
+
+        // 使用创建的字母生成器
+        const letterGenerator = createLetterGenerator();
+        const board = new Board(letterGenerator, 4, 4); // 假设的宽度和高度为 4x4
+
+        // 添加事件监听器
+        board.addListener(event => {
+            if (event.kind === 'Match') {
+                const currentScore = board.getScore();
+                updateScore(currentScore); // 更新页面上的分数显示
+            }
+        });
+
+        document.getElementById('gameDiv').style.display = 'block';
+        document.getElementById('scoreDiv').style.display = 'block';
+
+        const response = await fetch('http://localhost:9090/games', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            showMessage('Game started');
+            // 这里可以添加开始游戏的逻辑
+        } else {
+            showMessage('Failed to start game');
+        }
+    }
+
+    function updateScore(score) {
+        document.getElementById('score').innerText = score;
+    }
+
+
+
+
+
+</script>
 </html>

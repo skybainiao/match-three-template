@@ -17,17 +17,22 @@ export type BoardEvent<T> =
 export type BoardListener<T> = (event: BoardEvent<T>) => void;
 
 export class Board<T> {
+    private score = 0;
     readonly width: number;
     readonly height: number;
-    private grid: (T | undefined)[][];
+    private readonly grid: (T | undefined)[][];
     private listeners: BoardListener<T>[] = [];
+    private generator: Generator<T>;
 
     constructor(generator: Generator<T>, width: number, height: number) {
+        this.generator = generator;
         this.width = width;
         this.height = height;
         this.grid = Array.from({ length: height }, () =>
             Array.from({ length: width }, () => generator.next()));
     }
+
+
 
     addListener(listener: BoardListener<T>) {
         this.listeners.push(listener);
@@ -64,39 +69,32 @@ export class Board<T> {
             return;
         }
 
-        // 交换瓷砖
         [this.grid[first.row][first.col], this.grid[second.row][second.col]] =
             [this.grid[second.row][second.col], this.grid[first.row][first.col]];
 
-        // 检测匹配
         const matches = this.findMatches();
 
-        // 如果没有匹配，撤销移动并返回
         if (matches.length === 0) {
             [this.grid[first.row][first.col], this.grid[second.row][second.col]] =
                 [this.grid[second.row][second.col], this.grid[first.row][first.col]];
             return;
         }
 
-        // 处理匹配
         this.handleMatches(matches);
 
-        // 触发事件
         matches.forEach(match => {
             this.listeners.forEach(listener => listener({ kind: 'Match', match }));
         });
 
-        // 填补空位
         this.refillBoard();
 
-        // 触发填补事件
         this.listeners.forEach(listener => listener({ kind: 'Refill' }));
     }
 
 
     private findMatches(): Match<T>[] {
         const matches: Match<T>[] = [];
-        // 示例：仅检查水平方向的匹配
+
         for (let row = 0; row < this.height; row++) {
             for (let col = 0; col < this.width - 2; col++) {
                 const current = this.grid[row][col];
@@ -104,7 +102,7 @@ export class Board<T> {
                     current === this.grid[row][col + 1] &&
                     current === this.grid[row][col + 2]) {
                     matches.push({
-                        matched: current as T, // 使用类型断言
+                        matched: current as T,
                         positions: [{ row, col }, { row, col: col + 1 }, { row, col: col + 2 }]
                     });
                 }
@@ -118,8 +116,13 @@ export class Board<T> {
         for (const match of matches) {
             for (const pos of match.positions) {
                 this.grid[pos.row][pos.col] = undefined;
+                this.score += 10;
             }
         }
+    }
+
+    getScore() {
+        return this.score;
     }
 
     private refillBoard() {
@@ -135,7 +138,14 @@ export class Board<T> {
                 }
                 emptyIndex--;
             }
+
+            while (emptyIndex >= 0) {
+                this.grid[emptyIndex][col] = this.generator.next();
+                emptyIndex--;
+            }
         }
     }
+
+
 
 }

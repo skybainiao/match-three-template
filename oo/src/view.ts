@@ -53,11 +53,12 @@ export class View<T> {
         // @ts-ignore
         this.board.forEach((row, i) => {
             row.forEach((cell, j) => {
-                const position = {row: i, col: j}
-                // @ts-ignore
-                cell.innerText = model.board.piece(position).toString()
-                cell.style.background = model.isSelected(position) ? 'aqua' : 'white'
-            })
+                const position = {row: i, col: j};
+                const piece = model.board.piece(position);
+                cell.innerText = piece ? piece.toString() : '';
+                cell.style.background = model.isSelected(position) ? 'aqua' : 'white';
+            });
         });
+
     }
 }
